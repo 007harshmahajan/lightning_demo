@@ -2,8 +2,6 @@
 
 A modern, user-friendly React application for interacting with the Bitcoin Lightning Network through BitGo's API. This demo showcases how to create and pay Lightning Network invoices, manage wallets, and handle transactions in a secure and efficient way.
 
-![BitGo Lightning UI Demo](screenshot.png)
-
 ## Features
 
 - 🌐 Support for both Testnet (TLNBTC) and Mainnet (LNBTC) networks
@@ -26,7 +24,7 @@ Before you begin, ensure you have installed:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/lightning-ui-demo.git
+   git clone https://github.com/007harshmahajan/lightning-ui-demo.git
    cd lightning-ui-demo
    ```
 
@@ -35,12 +33,7 @@ Before you begin, ensure you have installed:
    npm install
    ```
 
-3. Create a `.env` file in the root directory (optional):
-   ```env
-   REACT_APP_BITGO_API_URL=https://app.bitgo-test.com/api/v2
-   ```
-
-4. Start the development server:
+3. Start the development server:
    ```bash
    npm start
    ```
@@ -88,14 +81,6 @@ Key components:
 - `InvoiceList`: Transaction history display
 - `PaymentList`: Payment history tracking
 
-## Security Considerations
-
-- Never commit API keys or sensitive credentials
-- Use environment variables for configuration
-- Implement proper error handling
-- Follow BitGo's security best practices
-- Keep dependencies updated
-
 ## Development
 
 ### Project Structure
@@ -117,14 +102,6 @@ lightning-ui-demo/
 - `npm build`: Build production version
 - `npm test`: Run tests
 - `npm run eject`: Eject from Create React App
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ## License
 
