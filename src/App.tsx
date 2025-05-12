@@ -106,6 +106,8 @@ const MainContent: React.FC = () => {
       }
       setLoading(true);
       setError('');
+      setPaymentResult('');
+      
       const response = await bitgoService.payInvoice(
         bearerToken,
         walletId, 
@@ -116,7 +118,19 @@ const MainContent: React.FC = () => {
         passphrase,
         network
       );
-      setPaymentResult(`Payment successful! Payment Hash: ${response.paymentHash}`);
+
+      // Wait for a moment and fetch the payment status
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const payment = await bitgoService.getPayment(bearerToken, walletId, response.paymentHash, network);
+      
+      if (payment.status === 'FAILED') {
+        throw new Error(payment.failureReason || 'Payment failed');
+      } else if (payment.status === 'PENDING') {
+        setPaymentResult(`Payment is being processed. Payment Hash: ${payment.paymentHash}`);
+      } else {
+        setPaymentResult(`Payment successful! Payment Hash: ${payment.paymentHash}`);
+      }
+      
       await fetchPayments(); // Refresh the payment list
     } catch (err: any) {
       console.error('Error paying invoice:', err);

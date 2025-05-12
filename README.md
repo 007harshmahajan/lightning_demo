@@ -35,7 +35,7 @@ Before you begin, ensure you have installed:
 
 3. Start the development server:
    ```bash
-   npm start
+   node start.js
    ```
 
 The application will be available at `http://localhost:3000`.

@@ -23,17 +23,44 @@ export interface BitGoLightningInvoice {
   memo?: string;
 }
 
-export interface BitGoLightningPayment {
+export interface BitGoPaymentStatus {
   paymentHash: string;
-  walletId: string;
-  txRequestId: string;
   status: "settled" | "in_flight" | "failed";
-  invoice: string;
-  feeLimitMsat: bigint;
-  destination: string;
-  updatedAt: Date;
-  createdAt: Date;
-  amountMsat: bigint;
+  failureReason?: string;
+}
+
+export interface BitGoTransferEntry {
+  address: string;
+  wallet?: string;
+  value: number;
+  valueString: string;
+  isChange?: boolean;
+  isPayGo?: boolean;
+}
+
+export interface BitGoTransfer {
+  entries: BitGoTransferEntry[];
+  id: string;
+  coin: string;
+  wallet: string;
+  txid: string;
+  date: string;
+  value: number;
+  valueString: string;
+  feeString: string;
+  state: string;
+  coinSpecific: {
+    isOffchain: boolean;
+    invoice: string;
+    _requestId: string;
+  };
+}
+
+export interface BitGoPaymentResponse {
+  txRequestId: string;
+  txRequestState: string;
+  paymentStatus: BitGoPaymentStatus;
+  transfer: BitGoTransfer;
 }
 
 // Our Application Types
@@ -51,10 +78,18 @@ export interface LightningInvoice {
 
 export interface LightningPayment {
   paymentHash: string;
-  valueMsat: bigint;
-  feeMsat: bigint;
   status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  failureReason?: string;
   timestamp: number;
+  value: number;
+  valueString: string;
+  valueMsat: string;
+  feeMsat: string;
+  fee: string;
+  destination?: string;
+  invoice?: string;
+  txRequestId?: string;
+  state?: string;
 }
 
 export interface CreateInvoiceParams {

@@ -16,30 +16,27 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onCreateInvoice, isLoad
   };
 
   return (
-    <div className="section">
-      <h2>Create Invoice</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="input-group">
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="Amount in sats"
-            min="1"
-            required
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <button
-            type="submit"
-            disabled={!amount || isLoading}
-            className="create-invoice-btn"
-          >
-            {isLoading ? 'Creating...' : 'Create Invoice'}
-          </button>
-        </div>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="input-group">
+        <input
+          type="number"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Amount in sats"
+          min="1"
+          required
+          disabled={isLoading}
+          className="flex-1"
+        />
+        <button
+          type="submit"
+          disabled={!amount || isLoading}
+          className="create-invoice-btn"
+        >
+          {isLoading ? 'Creating...' : 'Create Invoice'}
+        </button>
+      </div>
+    </form>
   );
 };
 

@@ -424,4 +424,62 @@ input::placeholder, textarea::placeholder {
   button {
     width: auto;
   }
+}
+
+/* Add these rules for better text handling */
+.break-all {
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.truncate-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Improve readability for code blocks and monospace text */
+code, .font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9em;
+  line-height: 1.5;
+}
+
+/* Add scrollbars for overflow content */
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.max-h-12 {
+  max-height: 3rem;
+}
+
+.max-h-20 {
+  max-height: 5rem;
+}
+
+/* Improve scroll appearance */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Fix text wrapping in list containers */
+.list-item {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 } 

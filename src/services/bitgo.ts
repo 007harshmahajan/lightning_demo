@@ -6,8 +6,9 @@ import {
   LightningPayment,
   CreateInvoiceParams, 
   PayInvoiceParams,
-  BitGoLightningPayment,
-  BitGoNetwork
+  BitGoNetwork,
+  BitGoPaymentResponse,
+  BitGoTransferEntry
 } from '../types/lightning';
 import { NETWORK_CONFIGS } from '../config/networks';
 
@@ -164,9 +165,9 @@ const mapBitGoInvoice = (invoice: any): LightningInvoice => {
   return {
     paymentHash: invoice.paymentHash,
     walletId: invoice.walletId,
-    status: invoice.status,
+    status: invoice.status.toUpperCase(),
     invoice: invoice.invoice,
-    valueMsat: invoice.valueMsat.toString(),
+    valueMsat: invoice.valueMsat?.toString() || '0',
     expiresAt: invoice.expiresAt,
     createdAt: invoice.createdAt,
     updatedAt: invoice.updatedAt,
@@ -175,24 +176,86 @@ const mapBitGoInvoice = (invoice: any): LightningInvoice => {
 };
 
 const mapBitGoPayment = (payment: any): LightningPayment => {
-  let status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
-  switch (payment.status) {
-    case 'settled':
-      status = 'SUCCEEDED';
-      break;
-    case 'failed':
-      status = 'FAILED';
-      break;
-    default:
-      status = 'PENDING';
-  }
+  // Direct API format (GET /payment endpoint)
+  if (payment.status && !payment.paymentStatus) {
+    // Convert status to our application format
+    let status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+    switch (payment.status) {
+      case 'settled':
+        status = 'SUCCEEDED';
+        break;
+      case 'failed':
+        status = 'FAILED';
+        break;
+      case 'in_flight':
+      default:
+        status = 'PENDING';
+    }
 
+    return {
+      paymentHash: payment.paymentHash || '',
+      status,
+      failureReason: payment.failureReason,
+      timestamp: payment.createdAt ? new Date(payment.createdAt).getTime() : Date.now(),
+      value: Number(payment.amountMsat || '0') / 1000,
+      valueString: (Number(payment.amountMsat || '0') / 1000).toString(),
+      valueMsat: payment.amountMsat?.toString() || '0',
+      feeMsat: payment.feeMsat?.toString() || '0',
+      fee: (Number(payment.feeMsat || '0') / 1000).toString(),
+      destination: payment.destination,
+      invoice: payment.invoice,
+      txRequestId: payment.txRequestId,
+      state: payment.status
+    };
+  }
+  
+  // Nested paymentStatus format (POST response or complex format)
+  if (payment.paymentStatus && payment.paymentStatus.status) {
+    let status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+    switch (payment.paymentStatus.status) {
+      case 'settled':
+        status = 'SUCCEEDED';
+        break;
+      case 'failed':
+        status = 'FAILED';
+        break;
+      case 'in_flight':
+      default:
+        status = 'PENDING';
+    }
+
+    // Find destination from transfer entries if available
+    const destinationEntry = payment.transfer?.entries?.find((entry: any) => !entry.wallet && !entry.isChange);
+    const value = payment.transfer ? Math.abs(payment.transfer.value || 0) : 0;
+
+    return {
+      paymentHash: payment.paymentStatus.paymentHash || '',
+      status,
+      failureReason: payment.paymentStatus.failureReason,
+      timestamp: payment.transfer?.date ? new Date(payment.transfer.date).getTime() : Date.now(),
+      value,
+      valueString: payment.transfer?.valueString?.replace('-', '') || '0',
+      valueMsat: payment.paymentStatus.amountMsat || (value * 1000).toString(),
+      feeMsat: payment.paymentStatus.feeMsat || (payment.transfer?.feeString ? (Number(payment.transfer.feeString) * 1000).toString() : '0'),
+      fee: payment.transfer?.feeString || '0',
+      destination: destinationEntry?.address,
+      invoice: payment.transfer?.coinSpecific?.invoice,
+      txRequestId: payment.txRequestId,
+      state: payment.transfer?.state
+    };
+  }
+  
+  // Fallback for malformed data
+  console.warn('Payment data format not recognized:', payment);
   return {
-    paymentHash: payment.paymentHash,
-    valueMsat: payment.amountMsat,
-    feeMsat: payment.feeLimitMsat,
-    status,
-    timestamp: new Date(payment.createdAt).getTime()
+    paymentHash: payment?.paymentHash || '',
+    status: 'PENDING',
+    timestamp: Date.now(),
+    value: 0,
+    valueString: '0',
+    valueMsat: '0',
+    feeMsat: '0',
+    fee: '0'
   };
 };
 
@@ -234,7 +297,7 @@ export const payInvoice = async (
     console.log(`Processing payment on network: ${network} with coin: ${coin}`);
 
     // Make the payment request through our proxy with minimal parameters
-    const payment = await makeBitGoRequest(
+    const response = await makeBitGoRequest(
       `/wallet/${walletId}/lightning/payment`,
       bearerToken,
       'POST',
@@ -246,13 +309,24 @@ export const payInvoice = async (
     );
 
     // Map the response to our application type
+    const value = Math.abs(response.transfer.baseValue);
+    const destinationEntry = response.transfer.entries.find((entry: BitGoTransferEntry) => !entry.wallet && !entry.isChange);
+    
     return {
-      paymentHash: payment.paymentHash || '',
-      valueMsat: BigInt(payment.amountMsat?.toString() || '0'),
-      feeMsat: BigInt(payment.feeLimitMsat?.toString() || '0'),
-      status: payment.status === 'settled' ? 'SUCCEEDED' :
-              payment.status === 'failed' ? 'FAILED' : 'PENDING',
-      timestamp: Date.now()
+      paymentHash: response.paymentStatus.paymentHash,
+      status: response.paymentStatus.status === 'settled' ? 'SUCCEEDED' :
+              response.paymentStatus.status === 'failed' ? 'FAILED' : 'PENDING',
+      failureReason: response.paymentStatus.failureReason,
+      timestamp: new Date(response.transfer.date).getTime(),
+      value,
+      valueString: response.transfer.baseValueString.replace('-', ''),
+      valueMsat: response.paymentStatus.amountMsat || (value * 1000).toString(),
+      feeMsat: response.paymentStatus.feeMsat || (Number(response.transfer.feeString) * 1000).toString(),
+      fee: response.transfer.feeString,
+      destination: destinationEntry?.address,
+      invoice: response.transfer.coinSpecific.invoice,
+      txRequestId: response.txRequestId,
+      state: response.transfer.state
     };
   } catch (error: any) {
     console.error('Error paying invoice:', error);
@@ -266,16 +340,42 @@ export const listInvoices = async (
   limit = 10,
   network: BitGoNetwork = 'tlnbtc'
 ): Promise<LightningInvoice[]> => {
-  const bitgoInvoices = await makeBitGoRequest(
-    `/wallet/${walletId}/lightning/invoice`,
-    bearerToken,
-    'GET',
-    undefined,
-    { limit, network }
-  );
-  return Array.isArray(bitgoInvoices.invoices)
-    ? bitgoInvoices.invoices.map(mapBitGoInvoice)
-    : [];
+  try {
+    const response = await makeBitGoRequest(
+      `/wallet/${walletId}/lightning/invoice`,
+      bearerToken,
+      'GET',
+      undefined,
+      { limit, network }
+    );
+    
+    if (!Array.isArray(response)) {
+      console.error('Unexpected invoice response format:', response);
+      return [];
+    }
+    
+    return response.map(invoice => {
+      try {
+        return mapBitGoInvoice(invoice);
+      } catch (error) {
+        console.error('Error mapping invoice:', error, invoice);
+        // Return a minimal valid invoice object
+        return {
+          paymentHash: invoice.paymentHash || '',
+          walletId: invoice.walletId || '',
+          status: 'PENDING',
+          invoice: invoice.invoice || '',
+          valueMsat: '0',
+          expiresAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching invoices:', error);
+    throw new Error(`Failed to fetch invoices: ${error.message || 'Unknown error'}`);
+  }
 };
 
 export const listPayments = async (
@@ -284,16 +384,42 @@ export const listPayments = async (
   limit = 10,
   network: BitGoNetwork = 'tlnbtc'
 ): Promise<LightningPayment[]> => {
-  const bitgoPayments = await makeBitGoRequest(
-    `/wallet/${walletId}/lightning/payment`,
-    bearerToken,
-    'GET',
-    undefined,
-    { limit, network }
-  );
-  return Array.isArray(bitgoPayments.payments)
-    ? bitgoPayments.payments.map(mapBitGoPayment)
-    : [];
+  try {
+    const response = await makeBitGoRequest(
+      `/wallet/${walletId}/lightning/payment`,
+      bearerToken,
+      'GET',
+      undefined,
+      { limit, network }
+    );
+    
+    if (!Array.isArray(response)) {
+      console.error('Unexpected payment response format:', response);
+      return [];
+    }
+    
+    return response.map(payment => {
+      try {
+        return mapBitGoPayment(payment);
+      } catch (error) {
+        console.error('Error mapping payment:', error, payment);
+        // Return a minimal valid payment object
+        return {
+          paymentHash: payment.paymentHash || '',
+          status: 'PENDING',
+          timestamp: Date.now(),
+          value: 0,
+          valueString: '0',
+          valueMsat: '0',
+          feeMsat: '0',
+          fee: '0'
+        };
+      }
+    });
+  } catch (error: any) {
+    console.error('Error fetching payments:', error);
+    throw new Error(`Failed to fetch payments: ${error.message || 'Unknown error'}`);
+  }
 };
 
 export const getPayment = async (

@@ -16,29 +16,26 @@ const InvoicePayment: React.FC<InvoicePaymentProps> = ({ onPayInvoice, isLoading
   };
 
   return (
-    <div className="section">
-      <h2>Pay Invoice</h2>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="input-group">
-          <textarea
-            value={invoice}
-            onChange={(e) => setInvoice(e.target.value)}
-            placeholder="Paste invoice here"
-            required
-            disabled={isLoading}
-            className="invoice-textarea"
-            rows={3}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={!invoice || isLoading}
-          className="pay-invoice-btn"
-        >
-          {isLoading ? 'Processing Payment...' : 'Pay Invoice'}
-        </button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="input-group">
+        <textarea
+          value={invoice}
+          onChange={(e) => setInvoice(e.target.value)}
+          placeholder="Paste invoice here"
+          required
+          disabled={isLoading}
+          className="invoice-textarea"
+          rows={3}
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={!invoice || isLoading}
+        className="pay-invoice-btn"
+      >
+        {isLoading ? 'Processing Payment...' : 'Pay Invoice'}
+      </button>
+    </form>
   );
 };
 

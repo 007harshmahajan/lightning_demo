@@ -49,8 +49,8 @@ const initializeBitGoSDK = (bearerToken, network = 'tlnbtc') => {
 
   return new BitGo({
     accessToken: token,
-    env: 'staging',
-    customRootURI: 'https://app.bitgo-staging.com'
+    env: 'test',
+    customRootURI: 'https://app.bitgo-test.com'
   });
 };
 
