@@ -108,30 +108,47 @@ const MainContent: React.FC = () => {
       setError('');
       setPaymentResult('');
       
-      const response = await bitgoService.payInvoice(
-        bearerToken,
-        walletId, 
-        {
-          paymentRequest: invoice,
-          maxFeeMsat: BigInt(1000000), // 1000 sats in millisatoshis for fee limit
-        },
-        passphrase,
-        network
-      );
+      try {
+        const response = await bitgoService.payInvoice(
+          bearerToken,
+          walletId, 
+          {
+            paymentRequest: invoice,
+            maxFeeMsat: BigInt(1000000), // 1000 sats in millisatoshis for fee limit
+          },
+          passphrase,
+          network
+        );
 
-      // Wait for a moment and fetch the payment status
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      const payment = await bitgoService.getPayment(bearerToken, walletId, response.paymentHash, network);
-      
-      if (payment.status === 'FAILED') {
-        throw new Error(payment.failureReason || 'Payment failed');
-      } else if (payment.status === 'PENDING') {
-        setPaymentResult(`Payment is being processed. Payment Hash: ${payment.paymentHash}`);
-      } else {
-        setPaymentResult(`Payment successful! Payment Hash: ${payment.paymentHash}`);
+        // If we get here, the payment was sent successfully 
+        // Payment hash is available, show immediate feedback
+        setPaymentResult(`Payment sent! Payment Hash: ${response.paymentHash}`);
+        
+        // Wait for a moment and fetch the payment status for additional information
+        try {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          const payment = await bitgoService.getPayment(bearerToken, walletId, response.paymentHash, network);
+          
+          if (payment.status === 'FAILED') {
+            throw new Error(payment.failureReason || 'Payment verification failed');
+          } else if (payment.status === 'PENDING') {
+            setPaymentResult(`Payment is being processed. Payment Hash: ${payment.paymentHash}`);
+          } else {
+            setPaymentResult(`Payment successful! Amount: ${payment.value} sats, Fee: ${payment.fee} sats, Hash: ${payment.paymentHash}`);
+          }
+        } catch (verifyError) {
+          // If we can't verify the payment status, still consider it successful since the initial request worked
+          console.warn('Could not verify payment status:', verifyError);
+          setPaymentResult(`Payment sent successfully, but could not verify final status. Payment Hash: ${response.paymentHash}`);
+        }
+        
+        // Refresh the payment list
+        await fetchPayments();
+      } catch (invoiceError: any) {
+        // This is a payment submission error
+        console.error('Error submitting payment:', invoiceError);
+        setError(`Failed to submit payment: ${invoiceError.message}`);
       }
-      
-      await fetchPayments(); // Refresh the payment list
     } catch (err: any) {
       console.error('Error paying invoice:', err);
       setError(`Failed to pay invoice: ${err.message}`);

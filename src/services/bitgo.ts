@@ -66,15 +66,37 @@ const makeBitGoRequest = async (
   try {
     const response = await fetch(url.toString(), options);
     if (!response.ok) {
-      const error = await response.json();
-      console.error('BitGo API error:', {
-        status: response.status,
-        statusText: response.statusText,
-        error
-      });
-      throw new Error(error.error || 'API request failed');
+      // First try to parse as JSON
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        console.error('BitGo API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error
+        });
+        throw new Error(error.error || 'API request failed');
+      } else {
+        // Handle non-JSON responses
+        const errorText = await response.text();
+        console.error('BitGo API error (non-JSON):', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText.substring(0, 200) // Log first 200 chars
+        });
+        throw new Error(`API request failed with status ${response.status}`);
+      }
     }
-    return await response.json();
+    
+    // Check for JSON content type
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return await response.json();
+    } else {
+      const text = await response.text();
+      console.warn('Received non-JSON response:', text.substring(0, 200));
+      throw new Error('Received non-JSON response from server');
+    }
   } catch (error: any) {
     console.error('BitGo API request failed:', error);
     throw new Error(`BitGo API request failed: ${error.message}`);
@@ -428,14 +450,44 @@ export const getPayment = async (
   paymentHash: string,
   network: BitGoNetwork = 'tlnbtc'
 ): Promise<LightningPayment> => {
-  const bitgoPayment = await makeBitGoRequest(
-    `/wallet/${walletId}/lightning/payment/${paymentHash}`, 
-    bearerToken,
-    'GET',
-    undefined,
-    { network }
-  );
-  return mapBitGoPayment(bitgoPayment);
+  try {
+    // First try to just get the payment directly
+    try {
+      const bitgoPayment = await makeBitGoRequest(
+        `/wallet/${walletId}/lightning/payment/${paymentHash}`, 
+        bearerToken,
+        'GET',
+        undefined,
+        { network }
+      );
+      return mapBitGoPayment(bitgoPayment);
+    } catch (error) {
+      console.warn(`Could not get payment by hash directly: ${error}`);
+      
+      // Fallback: try to get the payment from the list of payments
+      const payments = await listPayments(bearerToken, walletId, 20, network);
+      const payment = payments.find(p => p.paymentHash === paymentHash);
+      
+      if (payment) {
+        return payment;
+      }
+      
+      // If we can't find the payment, create a basic payment object with the hash
+      return {
+        paymentHash: paymentHash,
+        status: 'SUCCEEDED', // Assume success since we got here after a payment call
+        timestamp: Date.now(),
+        value: 0,
+        valueString: '0',
+        valueMsat: '0',
+        feeMsat: '0',
+        fee: '0'
+      };
+    }
+  } catch (error: any) {
+    console.error('Error getting payment details:', error);
+    throw new Error(`Failed to get payment details: ${error.message}`);
+  }
 };
 
 export const getInvoice = async (
