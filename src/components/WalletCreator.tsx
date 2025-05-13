@@ -10,6 +10,7 @@ interface WalletCreatorProps {
 export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, bearerToken }) => {
   const [label, setLabel] = useState('');
   const [passphrase, setPassphrase] = useState('');
+  const [passcodeEncryptionCode, setPasscodeEncryptionCode] = useState('');
   const [enterpriseId, setEnterpriseId] = useState('');
   const [backupInfo, setBackupInfo] = useState<any>(null);
   const [error, setError] = useState('');
@@ -27,7 +28,12 @@ export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, b
     }
 
     if (!passphrase) {
-      setError('Please enter a passphrase');
+      setError('Please enter a wallet passphrase');
+      return;
+    }
+
+    if (!passcodeEncryptionCode) {
+      setError('Please enter a passcode encryption code');
       return;
     }
 
@@ -43,16 +49,18 @@ export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, b
       console.log('Creating wallet with params:', {
         label,
         enterpriseId,
-        passphrase: '********' // Hide actual passphrase in logs
+        passphrase: '********', // Hide actual passphrase in logs
+        passcodeEncryptionCode: '********' // Hide actual encryption code in logs
       });
       
-      // Create the wallet with explicit passcodeEncryptionCode
+      // Create the wallet with required passcodeEncryptionCode
       const result = await createLightningWallet(
         bearerToken,
         label,
         passphrase,
         enterpriseId,
-        'tlnbtc' as BitGoNetwork
+        'tlnbtc' as BitGoNetwork,
+        passcodeEncryptionCode
       );
 
       // Store wallet information for display
@@ -85,13 +93,27 @@ export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, b
         <div className="form-group">
           <input
             type="password"
-            placeholder="Passphrase"
+            placeholder="Wallet Passphrase"
             value={passphrase}
             onChange={(e) => setPassphrase(e.target.value)}
             className="form-control w-full p-3 bg-background-darker border border-border rounded-md"
           />
           <p className="text-xs text-text-secondary mt-1">
-            This passphrase will be used as both your wallet passphrase and passcode encryption code. Store it securely - you'll need it to recover your wallet.
+            This passphrase will be used to secure your wallet. Store it securely - you'll need it to access your wallet.
+          </p>
+        </div>
+
+        <div className="form-group">
+          <input
+            type="password"
+            placeholder="Passcode Encryption Code"
+            value={passcodeEncryptionCode}
+            onChange={(e) => setPasscodeEncryptionCode(e.target.value)}
+            className="form-control w-full p-3 bg-background-darker border border-border rounded-md"
+            required
+          />
+          <p className="text-xs text-text-secondary mt-1">
+            Required: Enter a secure encryption code for your wallet. This is separate from your passphrase and provides an additional layer of security.
           </p>
         </div>
         
