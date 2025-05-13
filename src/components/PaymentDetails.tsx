@@ -62,6 +62,17 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({ payment, onClose }) => 
           </div>
         </div>
 
+        {payment.preimage && (
+          <div>
+            <h3 className="text-sm text-text-secondary mb-1">Payment Preimage</h3>
+            <div className="bg-background-darker p-2 rounded-md overflow-hidden">
+              <p className="font-mono text-sm break-all overflow-y-auto max-h-20">
+                {payment.preimage}
+              </p>
+            </div>
+          </div>
+        )}
+
         {payment.destination && (
           <div>
             <h3 className="text-sm text-text-secondary mb-1">Destination</h3>

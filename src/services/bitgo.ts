@@ -115,39 +115,39 @@ export const verifyToken = async (bearerToken: string) => {
   }
 };
 
-// Create a Lightning self-custodial wallet
+// Create a Lightning wallet
 export const createLightningWallet = async (
   bearerToken: string,
   label: string,
   passphrase: string,
-  passcodeEncryptionCode: string,
-  network: BitGoNetwork = 'tlnbtc'
+  enterpriseId: string,
+  network: BitGoNetwork = 'tlnbtc',
+  passcodeEncryptionCode?: string
 ): Promise<any> => {
   try {
     const coin = getCoinForNetwork(network);
-    const walletOptions = {
-      label,
-      passphrase,
-      enterprise: 'your-enterprise-id',
-      passcodeEncryptionCode,
-      subType: 'lightningSelfCustody',
-      tags: ['lightning', 'self-custody'],
-    };
-
-    console.log(`Creating Lightning self-custodial wallet on ${network} with coin ${coin}...`);
+    
+    console.log(`Creating Lightning custody wallet on ${network} with coin ${coin}...`);
+    
+    // Use provided passcodeEncryptionCode or fallback to passphrase
+    const actualPasscodeEncryptionCode = passcodeEncryptionCode || passphrase;
+    
+    // Simplify the request to ensure parameters are passed correctly
     const response = await makeBitGoRequest(
       `/${coin}/wallet/generate`, 
       bearerToken, 
       'POST', 
-      walletOptions, 
+      {
+        label: label,
+        passphrase: passphrase,
+        enterprise: enterpriseId,
+        passcodeEncryptionCode: actualPasscodeEncryptionCode, // Explicitly set passcodeEncryptionCode
+        subType: 'lightningCustody'
+      }, 
       { network }
     );
     
-    return {
-      wallet: response.wallet,
-      userKeychain: response.userKeychain,
-      passcodeEncryptionCode
-    };
+    return response;
   } catch (error: any) {
     console.error('Error creating Lightning wallet:', error);
     throw new Error(`Failed to create Lightning wallet: ${error.message || 'Unknown error'}`);
@@ -227,7 +227,8 @@ const mapBitGoPayment = (payment: any): LightningPayment => {
       destination: payment.destination,
       invoice: payment.invoice,
       txRequestId: payment.txRequestId,
-      state: payment.status
+      state: payment.status,
+      preimage: payment.paymentPreimage
     };
   }
   
@@ -263,7 +264,8 @@ const mapBitGoPayment = (payment: any): LightningPayment => {
       destination: destinationEntry?.address,
       invoice: payment.transfer?.coinSpecific?.invoice,
       txRequestId: payment.txRequestId,
-      state: payment.transfer?.state
+      state: payment.transfer?.state,
+      preimage: payment.paymentStatus.paymentPreimage || payment.transfer?.coinSpecific?.paymentPreimage
     };
   }
   
@@ -348,7 +350,8 @@ export const payInvoice = async (
       destination: destinationEntry?.address,
       invoice: response.transfer.coinSpecific.invoice,
       txRequestId: response.txRequestId,
-      state: response.transfer.state
+      state: response.transfer.state,
+      preimage: response.paymentStatus.paymentPreimage
     };
   } catch (error: any) {
     console.error('Error paying invoice:', error);
@@ -537,4 +540,4 @@ export const listTransactions = async (
   return Array.isArray(response.transactions)
     ? response.transactions
     : [];
-}; 
+};

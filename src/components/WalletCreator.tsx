@@ -1,90 +1,135 @@
 import React, { useState } from 'react';
 import { createLightningWallet } from '../services/bitgo';
+import { BitGoNetwork } from '../types/lightning';
 
 interface WalletCreatorProps {
   onWalletCreated: (walletId: string) => void;
+  bearerToken: string;
 }
 
-export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated }) => {
+export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, bearerToken }) => {
   const [label, setLabel] = useState('');
   const [passphrase, setPassphrase] = useState('');
-  const [passcodeEncryptionCode, setPasscodeEncryptionCode] = useState('');
-  const [bearerToken, setBearerToken] = useState('');
+  const [enterpriseId, setEnterpriseId] = useState('');
   const [backupInfo, setBackupInfo] = useState<any>(null);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleCreateWallet = async () => {
     if (!bearerToken) {
-      setError('Please enter bearer token');
+      setError('Bearer token is missing');
+      return;
+    }
+
+    if (!label) {
+      setError('Please enter a wallet label');
+      return;
+    }
+
+    if (!passphrase) {
+      setError('Please enter a passphrase');
+      return;
+    }
+
+    if (!enterpriseId) {
+      setError('Please enter your enterprise ID');
       return;
     }
 
     try {
       setError('');
+      setIsLoading(true);
       
-      // Create the wallet
+      console.log('Creating wallet with params:', {
+        label,
+        enterpriseId,
+        passphrase: '********' // Hide actual passphrase in logs
+      });
+      
+      // Create the wallet with explicit passcodeEncryptionCode
       const result = await createLightningWallet(
         bearerToken,
         label,
         passphrase,
-        passcodeEncryptionCode
+        enterpriseId,
+        'tlnbtc' as BitGoNetwork
       );
 
       // Store wallet information for display
-      setBackupInfo({
-        walletId: result.wallet.id,
-        userKeychain: result.userKeychain,
-        passcodeEncryptionCode: result.passcodeEncryptionCode
-      });
+      setBackupInfo(result);
 
       // Notify parent component
       onWalletCreated(result.wallet.id);
     } catch (err: any) {
       setError(err.message || 'Failed to create wallet');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="wallet-creator">
-      <h2>Create New Lightning Wallet</h2>
+    <div className="card p-6">
+      <h2 className="text-2xl font-bold mb-6">Create New Lightning Wallet</h2>
       
-          <div className="input-group">
-            <input
-              type="text"
-          placeholder="Enter Bearer Token"
-          value={bearerToken}
-          onChange={(e) => setBearerToken(e.target.value)}
-        />
-        <input
-          type="text"
-          placeholder="Wallet Label"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-            />
-            <input
-              type="password"
-          placeholder="Passphrase"
-              value={passphrase}
-              onChange={(e) => setPassphrase(e.target.value)}
-        />
-        <input
-          type="password"
-          placeholder="Passcode Encryption Code"
-          value={passcodeEncryptionCode}
-          onChange={(e) => setPasscodeEncryptionCode(e.target.value)}
-            />
-          </div>
+      <div className="space-y-4">
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="Wallet Label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            className="form-control w-full p-3 bg-background-darker border border-border rounded-md"
+          />
+        </div>
+        
+        <div className="form-group">
+          <input
+            type="password"
+            placeholder="Passphrase"
+            value={passphrase}
+            onChange={(e) => setPassphrase(e.target.value)}
+            className="form-control w-full p-3 bg-background-darker border border-border rounded-md"
+          />
+          <p className="text-xs text-text-secondary mt-1">
+            This passphrase will be used as both your wallet passphrase and passcode encryption code. Store it securely - you'll need it to recover your wallet.
+          </p>
+        </div>
+        
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="Enterprise ID"
+            value={enterpriseId}
+            onChange={(e) => setEnterpriseId(e.target.value)}
+            className="form-control w-full p-3 bg-background-darker border border-border rounded-md"
+          />
+        </div>
+      </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error-message bg-red-500 bg-opacity-20 text-red-500 p-3 rounded-md mt-4">
+          {error}
+        </div>
+      )}
 
-      <button onClick={handleCreateWallet}>Create Wallet</button>
+      <button 
+        onClick={handleCreateWallet} 
+        disabled={isLoading}
+        className="btn btn-primary w-full mt-6 p-3 rounded-md"
+      >
+        {isLoading ? 'Creating Wallet...' : 'Create Wallet'}
+      </button>
 
       {backupInfo && (
-        <div className="backup-info">
-          <h3>Wallet Created Successfully!</h3>
-          <p>Wallet ID: {backupInfo.walletId}</p>
-          <p>Please save your backup information:</p>
-          <pre>{JSON.stringify(backupInfo, null, 2)}</pre>
+        <div className="backup-info mt-6 p-4 bg-green-500 bg-opacity-10 border border-green-500 rounded-md">
+          <h3 className="text-xl font-bold text-green-500 mb-2">Wallet Created Successfully!</h3>
+          <p className="mb-2">Wallet ID: <span className="font-mono">{backupInfo.wallet.id}</span></p>
+          <p className="mb-2">Please save your backup information:</p>
+          <div className="max-h-60 overflow-y-auto">
+            <pre className="bg-background-darker p-3 rounded-md text-sm overflow-x-auto">
+              {JSON.stringify(backupInfo, null, 2)}
+            </pre>
+          </div>
         </div>
       )}
     </div>

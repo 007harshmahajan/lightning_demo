@@ -122,7 +122,7 @@ const MainContent: React.FC = () => {
 
         // If we get here, the payment was sent successfully 
         // Payment hash is available, show immediate feedback
-        setPaymentResult(`Payment sent! Payment Hash: ${response.paymentHash}`);
+        setPaymentResult(`Payment sent! Payment Hash: ${response.paymentHash}${response.preimage ? ` | Preimage: ${response.preimage}` : ''}`);
         
         // Wait for a moment and fetch the payment status for additional information
         try {
@@ -132,9 +132,9 @@ const MainContent: React.FC = () => {
           if (payment.status === 'FAILED') {
             throw new Error(payment.failureReason || 'Payment verification failed');
           } else if (payment.status === 'PENDING') {
-            setPaymentResult(`Payment is being processed. Payment Hash: ${payment.paymentHash}`);
+            setPaymentResult(`Payment is being processed. Payment Hash: ${payment.paymentHash}${payment.preimage ? ` | Preimage: ${payment.preimage}` : ''}`);
           } else {
-            setPaymentResult(`Payment successful! Amount: ${payment.value} sats, Fee: ${payment.fee} sats, Hash: ${payment.paymentHash}`);
+            setPaymentResult(`Payment successful! Amount: ${payment.value} sats, Fee: ${payment.fee} sats, Hash: ${payment.paymentHash}${payment.preimage ? ` | Preimage: ${payment.preimage}` : ''}`);
           }
         } catch (verifyError) {
           // If we can't verify the payment status, still consider it successful since the initial request worked
@@ -251,7 +251,7 @@ const MainContent: React.FC = () => {
             )}
 
             {showCreateWallet && (
-              <WalletCreator onWalletCreated={handleWalletCreated} />
+              <WalletCreator onWalletCreated={handleWalletCreated} bearerToken={bearerToken} />
             )}
           </div>
         ) : (

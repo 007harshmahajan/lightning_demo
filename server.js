@@ -78,6 +78,41 @@ const extractBearerToken = (req, res, next) => {
   next();
 };
 
+// Generate Lightning Wallet
+app.post('/api/bitgo/:coin/wallet/generate', extractBearerToken, async (req, res) => {
+  try {
+    const { coin } = req.params;
+    const { label, passphrase, enterprise, passcodeEncryptionCode } = req.body;
+    const bitgo = initializeBitGoSDK(req.bearerToken);
+    
+    // Log the exact parameters we're receiving
+    console.log('Received wallet generation parameters:', {
+      ...req.body,
+      passphrase: '********', // Hide actual passphrase in logs
+      passcodeEncryptionCode: passcodeEncryptionCode ? '********' : undefined // Hide actual code in logs
+    });
+
+    // Make sure we have a passcodeEncryptionCode
+    const actualPasscodeEncryptionCode = passcodeEncryptionCode || passphrase;
+
+    // Use the exact structure from the documentation
+    const newWallet = await bitgo.coin(coin).wallets().generateWallet({
+      label: label,
+      passphrase: passphrase,
+      enterprise: enterprise,
+      passcodeEncryptionCode: actualPasscodeEncryptionCode,
+      subType: 'lightningCustody'
+    });
+
+    console.log('Wallet created successfully with ID:', newWallet.wallet.id);
+    
+    res.json(JSON.parse(JSON.stringify(newWallet, replaceBigInt)));
+  } catch (error) {
+    console.error('Error generating wallet:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Pay Lightning Invoice
 app.post('/api/bitgo/wallet/:walletId/lightning/payment', extractBearerToken, async (req, res) => {
   try {
@@ -213,4 +248,4 @@ app.get('/api/bitgo/wallet/:walletId/lightning/payment', extractBearerToken, asy
 
 app.listen(port, () => {
   console.log(`BitGo proxy server running at http://localhost:${port}`);
-}); 
+});

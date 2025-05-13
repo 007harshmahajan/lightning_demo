@@ -51,7 +51,7 @@ export interface BitGoTransfer {
   state: string;
   coinSpecific: {
     isOffchain: boolean;
-    invoice: string;
+  invoice: string;
     _requestId: string;
   };
 }
@@ -90,6 +90,7 @@ export interface LightningPayment {
   invoice?: string;
   txRequestId?: string;
   state?: string;
+  preimage?: string;
 }
 
 export interface CreateInvoiceParams {

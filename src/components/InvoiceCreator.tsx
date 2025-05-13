@@ -28,7 +28,7 @@ const InvoiceCreator: React.FC<InvoiceCreatorProps> = ({ onCreateInvoice, isLoad
           disabled={isLoading}
           className="flex-1"
         />
-        <button
+        <button 
           type="submit"
           disabled={!amount || isLoading}
           className="create-invoice-btn"

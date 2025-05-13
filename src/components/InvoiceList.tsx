@@ -18,7 +18,7 @@ const InvoiceList: React.FC<InvoiceListProps> = ({ invoices }) => {
   };
 
   return (
-    <div className="list-container">
+      <div className="list-container">
       {invoices.length === 0 ? (
         <p className="text-gray-500">No invoices found</p>
       ) : (

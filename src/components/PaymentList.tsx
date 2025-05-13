@@ -19,13 +19,13 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
   };
 
   return (
-    <div className="list-container">
-      {payments.map((payment) => (
-        <div 
-          key={payment.paymentHash} 
+      <div className="list-container">
+        {payments.map((payment) => (
+          <div 
+            key={payment.paymentHash} 
           className="list-item cursor-pointer hover:bg-opacity-80"
-          onClick={() => onPaymentSelect(payment)}
-        >
+            onClick={() => onPaymentSelect(payment)}
+          >
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-lg font-medium">
@@ -49,6 +49,7 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
           <div className="mt-2">
             <p className="text-sm text-text-secondary">
               Time: {new Date(payment.timestamp).toLocaleString()}
+              {payment.preimage && <span className="ml-2 text-xs text-green-400">(With Preimage)</span>}
             </p>
             <div className="text-xs text-text-secondary mt-1">
               <p className="font-medium mb-1">Hash:</p> 
@@ -57,8 +58,8 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
               </code>
             </div>
           </div>
-        </div>
-      ))}
+          </div>
+        ))}
     </div>
   );
 };
