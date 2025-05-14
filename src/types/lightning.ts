@@ -104,4 +104,25 @@ export interface PayInvoiceParams {
   maxFeeMsat: bigint;
   memo?: string;
   amountMsat?: bigint;
+}
+
+export interface BitGoWallet {
+  id: string;
+  label: string;
+  enterprise: string;
+  coin: string;
+  // Lightning-specific balances
+  inboundBalance: string;
+  inboundPendingBalance: string;
+  inboundUnsettledBalance: string;
+  outboundBalance: string;
+  outboundPendingBalance: string;
+  outboundUnsettledBalance: string;
+  // On-chain balances
+  balanceString: string;
+  confirmedBalanceString: string;
+  spendableBalanceString: string;
+  // Other wallet properties
+  type: string;
+  subType: string;
 } 

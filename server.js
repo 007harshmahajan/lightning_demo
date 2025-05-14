@@ -88,19 +88,15 @@ app.post('/api/bitgo/:coin/wallet/generate', extractBearerToken, async (req, res
     // Log the exact parameters we're receiving
     console.log('Received wallet generation parameters:', {
       ...req.body,
-      passphrase: '********', // Hide actual passphrase in logs
-      passcodeEncryptionCode: passcodeEncryptionCode ? '********' : undefined // Hide actual code in logs
+      passphrase: passphrase,
+      passcodeEncryptionCode: passcodeEncryptionCode
     });
 
-    // Make sure we have a passcodeEncryptionCode
-    const actualPasscodeEncryptionCode = passcodeEncryptionCode || passphrase;
-
-    // Use the exact structure from the documentation
     const newWallet = await bitgo.coin(coin).wallets().generateWallet({
       label: label,
       passphrase: passphrase,
       enterprise: enterprise,
-      passcodeEncryptionCode: actualPasscodeEncryptionCode,
+      passcodeEncryptionCode: passcodeEncryptionCode,
       subType: 'lightningCustody'
     });
 
@@ -109,6 +105,74 @@ app.post('/api/bitgo/:coin/wallet/generate', extractBearerToken, async (req, res
     res.json(JSON.parse(JSON.stringify(newWallet, replaceBigInt)));
   } catch (error) {
     console.error('Error generating wallet:', error);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get Wallet Details (v2 API)
+app.get('/api/bitgo/v2/wallet/:walletId', extractBearerToken, async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    
+    console.log('\n=== Wallet Fetch Request ===');
+    console.log('Timestamp:', new Date().toISOString());
+    console.log('Wallet ID:', walletId);
+    console.log('Bearer Token (first 10 chars):', req.bearerToken.substring(0, 10) + '...');
+    console.log('Incoming Headers:', req.headers);
+    
+    const bitgoUrl = `https://app.bitgo-test.com/api/v2/wallet/${walletId}`;
+    console.log('BitGo URL:', bitgoUrl);
+    
+    // Make direct call to BitGo API with minimal headers
+    const response = await fetch(bitgoUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${req.bearerToken}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log('\n=== BitGo Response ===');
+    console.log('Status:', response.status);
+    console.log('Status Text:', response.statusText);
+    console.log('Response Headers:', response.headers);
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('BitGo Error Response:', error);
+      throw new Error(error.error || `BitGo API request failed with status ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('\n=== Wallet Data ===');
+    console.log('ID:', data.id);
+    console.log('Label:', data.label);
+    console.log('Balances:', {
+      inbound: {
+        available: data.inboundBalance,
+        pending: data.inboundPendingBalance,
+        unsettled: data.inboundUnsettledBalance
+      },
+      outbound: {
+        available: data.outboundBalance,
+        pending: data.outboundPendingBalance,
+        unsettled: data.outboundUnsettledBalance
+      },
+      onchain: {
+        balance: data.balanceString,
+        confirmed: data.confirmedBalanceString,
+        spendable: data.spendableBalanceString
+      }
+    });
+    console.log('=====================\n');
+
+    res.json(data);
+  } catch (error) {
+    console.error('\n=== Wallet Fetch Error ===');
+    console.error('Error:', error.message);
+    console.error('Stack:', error.stack);
+    console.error('=====================\n');
     res.status(400).json({ error: error.message });
   }
 });

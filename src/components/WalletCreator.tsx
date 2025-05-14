@@ -146,6 +146,57 @@ export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, b
         <div className="backup-info mt-6 p-4 bg-green-500 bg-opacity-10 border border-green-500 rounded-md">
           <h3 className="text-xl font-bold text-green-500 mb-2">Wallet Created Successfully!</h3>
           <p className="mb-2">Wallet ID: <span className="font-mono">{backupInfo.wallet.id}</span></p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 mb-4">
+            {/* Lightning Inbound Balance */}
+            <div className="p-3 bg-background-darker rounded-md">
+              <h4 className="text-sm font-semibold text-text-secondary mb-1">Lightning Inbound</h4>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  Available: <span className="font-mono">{formatSats(backupInfo.wallet.inboundBalance)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Pending: <span className="font-mono">{formatSats(backupInfo.wallet.inboundPendingBalance)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Unsettled: <span className="font-mono">{formatSats(backupInfo.wallet.inboundUnsettledBalance)}</span> sats
+                </p>
+              </div>
+            </div>
+
+            {/* Lightning Outbound Balance */}
+            <div className="p-3 bg-background-darker rounded-md">
+              <h4 className="text-sm font-semibold text-text-secondary mb-1">Lightning Outbound</h4>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  Available: <span className="font-mono">{formatSats(backupInfo.wallet.outboundBalance)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Pending: <span className="font-mono">{formatSats(backupInfo.wallet.outboundPendingBalance)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Unsettled: <span className="font-mono">{formatSats(backupInfo.wallet.outboundUnsettledBalance)}</span> sats
+                </p>
+              </div>
+            </div>
+
+            {/* Onchain Balance */}
+            <div className="p-3 bg-background-darker rounded-md">
+              <h4 className="text-sm font-semibold text-text-secondary mb-1">Onchain Balance</h4>
+              <div className="space-y-1">
+                <p className="text-sm">
+                  Total: <span className="font-mono">{formatSats(backupInfo.wallet.balanceString)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Confirmed: <span className="font-mono">{formatSats(backupInfo.wallet.confirmedBalanceString)}</span> sats
+                </p>
+                <p className="text-sm">
+                  Spendable: <span className="font-mono">{formatSats(backupInfo.wallet.spendableBalanceString)}</span> sats
+                </p>
+              </div>
+            </div>
+          </div>
+
           <p className="mb-2">Please save your backup information:</p>
           <div className="max-h-60 overflow-y-auto">
             <pre className="bg-background-darker p-3 rounded-md text-sm overflow-x-auto">
@@ -156,4 +207,13 @@ export const WalletCreator: React.FC<WalletCreatorProps> = ({ onWalletCreated, b
       )}
     </div>
   );
+};
+
+// Helper function to format satoshi values
+const formatSats = (value: string): string => {
+  try {
+    return new Intl.NumberFormat().format(parseInt(value || '0'));
+  } catch (error) {
+    return '0';
+  }
 };

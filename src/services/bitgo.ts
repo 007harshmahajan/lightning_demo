@@ -129,19 +129,16 @@ export const createLightningWallet = async (
     
     console.log(`Creating Lightning custody wallet on ${network} with coin ${coin}...`);
     
-    // Use provided passcodeEncryptionCode or fallback to passphrase
-    const actualPasscodeEncryptionCode = passcodeEncryptionCode || passphrase;
-    
     // Simplify the request to ensure parameters are passed correctly
     const response = await makeBitGoRequest(
       `/${coin}/wallet/generate`, 
       bearerToken, 
       'POST', 
       {
-        label: label,
-        passphrase: passphrase,
+        label,
+        passphrase,
         enterprise: enterpriseId,
-        passcodeEncryptionCode: actualPasscodeEncryptionCode, // Explicitly set passcodeEncryptionCode
+        passcodeEncryptionCode,
         subType: 'lightningCustody'
       }, 
       { network }
@@ -162,19 +159,18 @@ export const getBitGoLightningWallet = async (
   if (!walletId) throw new Error('Wallet ID is required');
   
   try {
-    const coin = getCoinForNetwork(network);
     const formattedWalletId = walletId.toLowerCase().trim();
     if (!/^[a-f0-9]{32}$/.test(formattedWalletId)) {
       throw new Error('Invalid wallet ID format. Should be a 32-character hex string');
     }
 
-    console.log(`Fetching wallet with ID: ${formattedWalletId} on network ${network} with coin ${coin}`);
+    console.log(`Fetching wallet with ID: ${formattedWalletId}`);
+    
+    // Use our backend proxy instead of calling BitGo directly
     return await makeBitGoRequest(
-      `/${coin}/wallet/${formattedWalletId}`, 
-      bearerToken, 
-      'GET', 
-      undefined, 
-      { network }
+      `/v2/wallet/${formattedWalletId}`,
+      bearerToken,
+      'GET'
     );
   } catch (error: any) {
     console.error('Error getting BitGo Lightning wallet:', error);

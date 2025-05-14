@@ -19,22 +19,27 @@ const PaymentDetails: React.FC<PaymentDetailsProps> = ({ payment, onClose }) => 
   };
 
   return (
-    <div className="card">
-      <div className="card-header flex justify-between items-center">
-        <h2 className="card-title">Payment Details</h2>
-        <button onClick={onClose} className="btn btn-secondary">
-          Close
-        </button>
-      </div>
+    <div className="card relative">
+      <button 
+        onClick={onClose} 
+        className="absolute right-4 top-4 text-gray-400 hover:text-white"
+        aria-label="Close"
+      >
+        ✕
+      </button>
       
-      <div className="space-y-4 mt-4">
-        <div className="flex justify-between items-center">
-          <span className="text-text-secondary">Status</span>
-          <span className={getStatusBadgeClass(payment.status)}>
+      <div className="card-header">
+        <h2 className="card-title mb-4">Payment Details</h2>
+        
+        {/* Status badge at the top */}
+        <div className="flex items-center mb-6">
+          <span className={`${getStatusBadgeClass(payment.status)} text-lg px-4 py-2`}>
             {payment.status}
           </span>
         </div>
-
+      </div>
+      
+      <div className="space-y-4 mt-4">
         {payment.status === 'FAILED' && payment.failureReason && (
           <div className="bg-error bg-opacity-10 text-error rounded-md p-4">
             <h3 className="text-sm font-medium mb-1">Failure Reason</h3>

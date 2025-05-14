@@ -8,10 +8,11 @@ import InvoiceList from './components/InvoiceList';
 import PaymentList from './components/PaymentList';
 import PaymentDetails from './components/PaymentDetails';
 import ErrorDisplay from './components/ErrorDisplay';
-import { LightningInvoice, LightningPayment } from './types/lightning';
+import { LightningInvoice, LightningPayment, BitGoWallet } from './types/lightning';
 import { NetworkProvider } from './contexts/NetworkContext';
 import { NetworkSelector } from './components/NetworkSelector';
 import { useNetwork } from './contexts/NetworkContext';
+import { WalletBalance } from './components/WalletBalance';
 
 // Import the real BitGo service
 import * as bitgoService from './services/bitgo';
@@ -35,6 +36,7 @@ const MainContent: React.FC = () => {
   const [showConnectWallet, setShowConnectWallet] = useState<boolean>(false);
   const [connectWalletId, setConnectWalletId] = useState('');
   const [connectPassphrase, setConnectPassphrase] = useState('');
+  const [walletData, setWalletData] = useState<BitGoWallet | null>(null);
 
   // Use useCallback to memoize functions that are used in useEffect
   const fetchInvoices = useCallback(async () => {
@@ -59,13 +61,25 @@ const MainContent: React.FC = () => {
     }
   }, [walletId, bearerToken]);
 
-  // Fetch invoices and payments on component mount or wallet ID change
+  const fetchWalletData = useCallback(async () => {
+    if (!walletId || !bearerToken) return;
+    try {
+      const response = await bitgoService.getBitGoLightningWallet(bearerToken, walletId, network);
+      setWalletData(response);
+    } catch (err: any) {
+      console.error('Error fetching wallet data:', err);
+      setError('Error fetching wallet data: ' + (err.message || 'Unknown error'));
+    }
+  }, [walletId, bearerToken, network]);
+
+  // Fetch invoices, payments, and wallet data on component mount or wallet ID change
   useEffect(() => {
     if (walletId) {
       fetchInvoices();
       fetchPayments();
+      fetchWalletData();
     }
-  }, [walletId, fetchInvoices, fetchPayments]);
+  }, [walletId, fetchInvoices, fetchPayments, fetchWalletData]);
 
   const handleCreateInvoice = async (amount: string) => {
     if (!walletId || !bearerToken) {
@@ -256,6 +270,13 @@ const MainContent: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {walletData && (
+              <div className="card">
+                <h2 className="card-title mb-4">Wallet Balance</h2>
+                <WalletBalance wallet={walletData} />
+              </div>
+            )}
+
             <div className="card">
               <h2 className="card-title">Create Invoice</h2>
               <div className="invoice-form">

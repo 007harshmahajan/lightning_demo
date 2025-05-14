@@ -18,14 +18,24 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
     }
   };
 
+  // Sort payments with most recent first
+  const sortedPayments = [...payments].sort((a, b) => b.timestamp - a.timestamp);
+
   return (
-      <div className="list-container">
-        {payments.map((payment) => (
-          <div 
-            key={payment.paymentHash} 
+    <div className="list-container">
+      {sortedPayments.map((payment) => (
+        <div 
+          key={payment.paymentHash} 
           className="list-item cursor-pointer hover:bg-opacity-80"
-            onClick={() => onPaymentSelect(payment)}
-          >
+          onClick={() => onPaymentSelect(payment)}
+        >
+          {/* Status at the top */}
+          <div className="flex justify-end mb-2">
+            <span className={getStatusBadgeClass(payment.status)}>
+              {payment.status}
+            </span>
+          </div>
+          
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-lg font-medium">
@@ -35,9 +45,6 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
                 Fee: {Number(payment.feeMsat) / 1000} sats
               </p>
             </div>
-            <span className={getStatusBadgeClass(payment.status)}>
-              {payment.status}
-            </span>
           </div>
           
           {payment.status === 'FAILED' && payment.failureReason && (
@@ -58,8 +65,8 @@ const PaymentList: React.FC<PaymentListProps> = ({ payments, onPaymentSelect }) 
               </code>
             </div>
           </div>
-          </div>
-        ))}
+        </div>
+      ))}
     </div>
   );
 };
